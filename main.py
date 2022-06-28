@@ -22,12 +22,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzzzz'
 Bootstrap(app)
 
+CATS = ['Merch', 'Household', 'SSS tier']
+cart = {}
+# img_path = None
+
 # file upload folder
 app.config['UPLOAD_FOLDER'] = 'static/temp'
 app.config['MAX_CONTENT_LENGTH'] = 1000 * 1000 * 10
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-
-CATS = ['Merch', 'Household', 'SSS tier']
 
 
 def is_allowed(filename):
@@ -48,7 +50,7 @@ def calc_total(c: dict):
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-##Connect to Database
+# Connect to Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mystore.db'
 # this has to be turned off to prevent flask-sqlalchemy framework from tracking events and save resources
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -78,13 +80,6 @@ class User(UserMixin, db.Model):
     # I just want to return a string with custom printable representation of an object, overrides standard one
     def __repr__(self):
         return f'<User_{self.id}: {self.user_name}>'
-
-
-# class UserPicture(db.Model, Image):
-#     """User picture model."""
-#     __tablename__ = 'avatars'
-#     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-#     user = relationship('User')
 
 
 class Product(db.Model):
@@ -128,7 +123,6 @@ def admin_only(func):
         if current_user.id != 1:
             return abort(403)
         return func(*args, **kwargs)
-
     return decorated
 
 
@@ -136,6 +130,11 @@ class LoginForm(FlaskForm):
     username_f = StringField(label='Username', validators=[DataRequired(), Length(min=1, max=30)])
     password_f = PasswordField(label='Password', validators=[DataRequired(), Length(min=1, max=30)])
     submit_f = SubmitField('Submit')
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 
 @app.route("/login", methods=['GET', 'POST'])
@@ -198,7 +197,27 @@ def register():
         return render_template("register.html", form=form)
 
 
-cart = {}
+@app.route("/products/<int:p_id>")
+@app.route("/products")
+def products(p_id=None):
+    global cart
+    if p_id:
+        product = db.session.query(Product).get(p_id)
+        return render_template("item.html", pr=product)
+    all_products = db.session.query(Product).all()
+    return render_template("products.html", ap=all_products, cc=cart)
+
+
+@app.route("/flush")
+def flush_cart():
+    """clears any cart if that exists"""
+    global cart
+    cart = {}
+    if current_user.is_authenticated:
+        current_user.cart = {}
+        db.session.commit()
+        return redirect(url_for('index'))
+    flash('Draft and cart have been reset.', 'info')
 
 
 @app.route("/buy/<int:p_id>")
@@ -214,6 +233,125 @@ def buy_pr(p_id):
     finally:
         print(cart)
     return redirect(url_for('products'))
+
+
+@app.route("/cart", methods=['GET', 'POST'])
+def show_cart():
+    global cart
+    if current_user.is_authenticated:
+        if cart:
+            # if we have some draft we should update in database
+            current_user.cart = cart
+        else:
+            # if we don't have any draft we should try to retrieve last cart from database
+            cart = current_user.cart
+    if request.method == 'POST':
+        act_del1 = request.form.get('del1btn')
+        act_conf = request.form.get('scrtbtn')
+        if act_del1:
+            pid_to_del = int(request.form['del1id'])
+            item_to_del = cart[pid_to_del]
+            if item_to_del[1] == 1:
+                cart.pop(pid_to_del)
+            else:
+                item_to_del[1] -= 1
+            flash('One item has been removed from the cart.', 'info')
+        if act_conf:
+            if current_user.is_authenticated:
+                current_user.cart = cart
+                db.session.commit()
+                flash('Ready for checkout.', 'info')
+                return redirect(url_for('checkout'))
+            else:
+                flash('Please login/register to continue.', 'error')
+                return redirect(url_for('login'))
+    return render_template("cart.html", cc=cart, tot=calc_total(cart))
+
+
+@app.route("/checkout", methods=['GET', 'POST'])
+@login_required
+def checkout():
+    final_cart = current_user.cart
+    total = calc_total(final_cart)
+    if request.method == 'POST':
+        private_data = {}
+        # shipping details
+        fn = request.form['firstName']
+        ln = request.form['lastName']
+        a1 = request.form['address']
+        a2 = request.form['address2']
+        cy = request.form['country']
+        st = request.form['state']
+        zp = request.form['zip']
+        private_data['a'] = {'fname': fn, 'lname': ln, 'addr1': a1, 'addr2': a2, 'country': cy, 'state': st, 'zip': zp}
+        # payment processing details
+        me = request.form['paymentMethod']
+        na = request.form['cc-name']
+        nu = request.form['cc-number']
+        ex = request.form['cc-expiration']
+        cv = request.form['cc-cvv']
+        private_data['p'] = {'pame': me, 'ccna': na, 'ccnu': nu, 'ccex': ex, 'cccv': cv}
+        # save all data for future checkmark state
+        save = request.form['save-info']
+        if save:
+            current_user.private_details = private_data
+            db.session.commit()
+    return render_template("checkout.html", fc=final_cart, tot=total)
+
+
+@app.route("/orders")
+@login_required
+def my_orders():
+    orders = current_user.purchases
+    print(orders)
+    #{o_id : [date, contents]}
+    return render_template("orders.html", ord=orders)
+
+
+@app.route("/add", methods=['GET', 'POST'])
+@login_required
+@admin_only
+def add_product():
+    global img_path
+    if request.method == 'POST':
+        f = request.files.get('file')
+        ti_add = request.form.get('addbtn')
+
+        p_cat = request.form['cat']
+        p_name = request.form['pname']
+        p_desc = request.form['pdesc']
+        p_pri = request.form['price']
+        p_amo = request.form['amount']
+        new_product = Product(p_category=p_cat,
+                              p_name=p_name,
+                              p_description=p_desc,
+                              p_price=p_pri,
+                              p_amount=p_amo)
+        # add text input for product
+        if ti_add:
+            try:
+                db.session.add(new_product)
+                db.session.commit()
+                flash(f'Product with the name {p_name} has been successfully added.', 'info')
+                return redirect(url_for('products'))
+            except exc.IntegrityError:
+                flash(f'Product with the name {p_name} already exists in the database.', 'error')
+        # image upload handler section
+        elif f:
+            if f.filename != '':
+                if is_allowed(f.filename):
+                    img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
+                    f.save(img_path)
+                    flash('file uploaded successfully', 'info')
+                    return render_template('add.html', pr_image=img_path, pr=new_product, cat_list=CATS)
+                else:
+                    flash('incorrect file', 'error')
+            else:
+                flash('No selected file', 'error')
+
+        else:
+            flash('Add an image for that product', 'error')
+    return render_template("add.html", pr=None, cat_list=CATS)
 
 
 @app.route("/edit/<int:p_id>", methods=['GET', 'POST'])
@@ -271,166 +409,6 @@ def del_pr(p_id):
     db.session.commit()
     flash(f'Product with the name {pr_to_del.p_name} has been successfully deleted.', "info")
     return redirect(url_for('products'))
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/products/<int:p_id>")
-@app.route("/products")
-def products(p_id=None):
-    global cart
-    if p_id:
-        product = db.session.query(Product).get(p_id)
-        return render_template("item.html", pr=product)
-    all_products = db.session.query(Product).all()
-    return render_template("products.html", ap=all_products, cc=cart)
-
-
-# img_path = None
-
-# def uploader(f):
-#     if f.filename != '':
-#         if is_allowed(f.filename):
-#             img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
-#             f.save(img_path)
-#             flash('file uploaded successfully', 'info')
-#             return img_path
-#         else:
-#             flash('incorrect file', 'error')
-#     else:
-#         flash('No selected file', 'error')
-
-
-@app.route("/add", methods=['GET', 'POST'])
-@login_required
-@admin_only
-def add_product():
-    global img_path
-    if request.method == 'POST':
-        f = request.files.get('file')
-        ti_add = request.form.get('addbtn')
-
-        p_cat = request.form['cat']
-        p_name = request.form['pname']
-        p_desc = request.form['pdesc']
-        p_pri = request.form['price']
-        p_amo = request.form['amount']
-        new_product = Product(p_category=p_cat,
-                              p_name=p_name,
-                              p_description=p_desc,
-                              p_price=p_pri,
-                              p_amount=p_amo)
-        # add text input for product
-        if ti_add:
-            try:
-                db.session.add(new_product)
-                db.session.commit()
-                flash(f'Product with the name {p_name} has been successfully added.', 'info')
-                return redirect(url_for('products'))
-            except exc.IntegrityError:
-                flash(f'Product with the name {p_name} already exists in the database.', 'error')
-        # image upload handler section
-        elif f:
-            if f.filename != '':
-                if is_allowed(f.filename):
-                    img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
-                    f.save(img_path)
-                    flash('file uploaded successfully', 'info')
-                    return render_template('add.html', pr_image=img_path, pr=new_product, cat_list=CATS)
-                else:
-                    flash('incorrect file', 'error')
-            else:
-                flash('No selected file', 'error')
-
-        else:
-            flash('Add an image for that product', 'error')
-    return render_template("add.html", pr=None, cat_list=CATS)
-
-
-@app.route("/flush")
-def flush_cart():
-    """clears any cart if that exists"""
-    global cart
-    cart = {}
-    if current_user.is_authenticated:
-        current_user.cart = {}
-        db.session.commit()
-        return redirect(url_for('index'))
-    flash('Draft and cart have been reset.', 'info')
-
-
-@app.route("/cart", methods=['GET', 'POST'])
-def show_cart():
-    global cart
-    if current_user.is_authenticated:
-        if cart:
-            # if we have some draft we should update in database
-            current_user.cart = cart
-        else:
-            # if we don't have any draft we should try to retrieve last cart from database
-            cart = current_user.cart
-    if request.method == 'POST':
-        act_del1 = request.form.get('del1btn')
-        act_conf = request.form.get('scrtbtn')
-        if act_del1:
-            pid_to_del = int(request.form['del1id'])
-            item_to_del = cart[pid_to_del]
-            if item_to_del[1] == 1:
-                cart.pop(pid_to_del)
-            else:
-                item_to_del[1] -= 1
-            flash('One item has been removed from the cart.', 'info')
-        if act_conf:
-            if current_user.is_authenticated:
-                current_user.cart = cart
-                db.session.commit()
-                flash('Ready for checkout.', 'info')
-                return redirect(url_for('checkout'))
-            else:
-                flash('Please login/register to continue.', 'error')
-                return redirect(url_for('login'))
-    return render_template("cart.html", cc=cart, tot=calc_total(cart))
-
-@app.route("/orders")
-@login_required
-def my_orders():
-    orders = current_user.purchases
-    print(orders)
-    #{o_id : [date, contents]}
-    return render_template("orders.html", ord=orders)
-
-@app.route("/checkout", methods=['GET', 'POST'])
-@login_required
-def checkout():
-    final_cart = current_user.cart
-    total = calc_total(final_cart)
-    if request.method == 'POST':
-        private_data = {}
-        # shipping details
-        fn = request.form['firstName']
-        ln = request.form['lastName']
-        a1 = request.form['address']
-        a2 = request.form['address2']
-        cy = request.form['country']
-        st = request.form['state']
-        zp = request.form['zip']
-        private_data['a'] = {'fname': fn, 'lname': ln, 'addr1': a1, 'addr2': a2, 'country': cy, 'state': st, 'zip': zp}
-        # payment processing details
-        me = request.form['paymentMethod']
-        na = request.form['cc-name']
-        nu = request.form['cc-number']
-        ex = request.form['cc-expiration']
-        cv = request.form['cc-cvv']
-        private_data['p'] = {'pame': me, 'ccna': na, 'ccnu': nu, 'ccex': ex, 'cccv': cv}
-        # save all data for future checkmark state
-        save = request.form['save-info']
-        if save:
-            current_user.private_details = private_data
-            db.session.commit()
-    return render_template("checkout.html", fc=final_cart, tot=total)
 
 
 if __name__ == '__main__':
