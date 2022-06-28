@@ -199,20 +199,6 @@ def register():
 
 
 cart = {}
-# img_path = None
-
-
-def uploader(f):
-    if f.filename != '':
-        if is_allowed(f.filename):
-            img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
-            f.save(img_path)
-            flash('file uploaded successfully', 'info')
-            return img_path
-        else:
-            flash('incorrect file', 'error')
-    else:
-        flash('No selected file', 'error')
 
 
 @app.route("/buy/<int:p_id>")
@@ -286,6 +272,20 @@ def products(p_id=None):
     return render_template("products.html", ap=all_products, cc=cart)
 
 
+# img_path = None
+
+def uploader(f):
+    if f.filename != '':
+        if is_allowed(f.filename):
+            img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
+            f.save(img_path)
+            flash('file uploaded successfully', 'info')
+            return img_path
+        else:
+            flash('incorrect file', 'error')
+    else:
+        flash('No selected file', 'error')
+
 @app.route("/add", methods=['GET', 'POST'])
 @login_required
 @admin_only
@@ -315,9 +315,17 @@ def add_product():
                 flash(f'Product with the name {p_name} already exists in the database.', 'error')
         # image upload handler section
         elif f:
-            img_path = uploader(f)
-            if img_path:
-                render_template('add.html', pr_image=img_path, pr=None, cat_list=CATS)
+            if f.filename != '':
+                if is_allowed(f.filename):
+                    img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
+                    f.save(img_path)
+                    flash('file uploaded successfully', 'info')
+                    return render_template('add.html', pr_image=img_path, pr=None, cat_list=CATS)
+                else:
+                    flash('incorrect file', 'error')
+            else:
+                flash('No selected file', 'error')
+
         else:
             flash('Add an image for that product', 'error')
     return render_template("add.html", pr=None, cat_list=CATS)
