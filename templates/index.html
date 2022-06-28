@@ -1,0 +1,76 @@
+{% extends 'custombase.html' %}
+
+{% block title %}
+Alexa Store
+{% endblock %}
+
+{% block content %}
+{% if current_user.is_authenticated and current_user.cart %}
+    <div class="container-fluid d-flex justify-content-center">
+        <h1>Continue with your last cart?</h1>
+    </div>
+    <div class="container-fluid d-flex justify-content-center mt-3">
+        <a href="{{ url_for('show_cart') }}" class="btn active col-1 btn-outline-primary me-2 btn-lg align-self-center">Ok</a>
+        <a href="{{ url_for('flush_cart') }}" class="btn active col-1 btn-outline-primary me-2 btn-lg align-self-center">No</a>
+    </div>
+ {% elif current_user.is_authenticated %}
+    <div class="container px-4 py-5" >
+        <div class="d-flex align-items-center justify-content-center">
+            <h1 class="pb-2 border-bottom">Welcome to the store!</h1>
+        </div>
+        <div class="row g-4 py-5 row-cols-1 row-cols-lg-3 justify-content-center">
+          <div class="col d-flex align-items-start">
+            <div class="icon-square d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+              <i class="bi bi-file-earmark-person"></i>
+            </div>
+            <div>
+              <h2>Purchase history</h2>
+              <p>Have a look at your current and previous orders to ensure that everything's fine.</p>
+              <a href="" class="btn w-100 btn-outline-primary">My orders</a>
+            </div>
+          </div>
+
+          <div class="col d-flex align-items-start">
+            <div class="icon-square d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+              <i class="bi bi-stars"></i>
+            </div>
+            <div>
+              <h2>Explore</h2>
+              <p>our products and find out what suits you best. Check new arrivals or limited discounts. </p>
+              <a href="{{ url_for('products') }}" class="btn w-100 btn-outline-primary">Show me the goods</a>
+            </div>
+          </div>
+        </div>
+    </div>
+ {% else %}
+    <div class="container px-4 py-5" id="hanging-icons">
+        <div class="d-flex align-items-center justify-content-center">
+            <h1 class="pb-2 border-bottom">Welcome to the store!</h1>
+        </div>
+        <div class="row g-4 py-5 row-cols-1 row-cols-lg-3 justify-content-center">
+          <div class="col d-flex align-items-start">
+            <div class="icon-square d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+              <i class="bi bi-door-open"></i>
+            </div>
+            <div>
+              <h2>Register</h2>
+              <p>now to get full feature store access. Registration procedure is pretty simple.</p>
+              <a href="{{ url_for('register') }}" class="btn w-100 btn-outline-primary">Proceed to registration</a>
+            </div>
+          </div>
+
+          <div class="col d-flex align-items-start">
+            <div class="icon-square d-inline-flex align-items-center justify-content-center fs-4 flex-shrink-0 me-3">
+              <i class="bi bi-stars"></i>
+            </div>
+            <div>
+              <h2>Explore</h2>
+              <p>our products and find out what suits you best. Check new arrivals or limited discounts. </p>
+              <a href="{{ url_for('products') }}" class="btn w-100 btn-outline-primary">Show me the goods</a>
+            </div>
+          </div>
+        </div>
+    </div>
+ {% endif %}
+{{ super() }}
+{% endblock %}

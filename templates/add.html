@@ -1,0 +1,84 @@
+{% extends 'custombase.html' %}
+
+{% block title %}
+Add a new product
+{% endblock %}
+
+
+{% block content %}
+<div class="container">
+      <div class="py-5 text-center">
+        <h2>New product</h2>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4 order-md-2 mb-4">
+      <h4 class="card-title mb-3">Product image</h4>
+            {% if pr_image %}
+                <img src="{{pr_image}}" class="card-img img-fluid rounded" alt="Responsive image">
+            {% endif %}
+      <form method = "POST" enctype = "multipart/form-data" class="mx-2 mt-2 d-flex justify-content-center">
+      <label for="file-upload" class="upload-butt btn custom-file-upload">{{'Reload' if pr_image else 'Load'}}</label>
+      <input id="file-upload" type="file" name="file" onchange="this.form.submit()"/>
+      </form>
+        </div>
+        <div class="col-md-8 order-md-1">
+          <form class="needs-validation" method="post" >
+              <div class="row">
+              <div class="col-md-5 mb-3">
+                <label for="cat">Category</label>
+                <select class="custom-select d-block w-100" id="cat" name="cat" required="">
+                  <option value="{{pr.p_category if pr else ''}}">Choose...</option>
+                    {% for c in cat_list %}
+                    <option {{"selected" if pr.p_category==c else ""}} >{{c}}</option>
+                    {% endfor %}
+                </select>
+                <div class="invalid-feedback">
+                  Please select a category.
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="price">Price (USD)</label>
+                <input type="text" class="form-control" id="price" placeholder="" name='price' value="{{pr.p_price if pr else ''}}">
+                <div class="invalid-feedback">
+                  Price field is required.
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label for="amount">Amount</label>
+                <input type="text" class="form-control" id="amount" placeholder="" name='amount' value="{{pr.p_amount if pr else ''}}">
+                <div class="invalid-feedback">
+                  Product quantity should be over zero.
+                </div>
+              </div>
+            </div>
+              <hr class="mb-3">
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label for="pname">Product name</label>
+                <input type="text" class="form-control" placeholder="Max 50 chars" id="pname" name="pname" value="{{pr.p_name if pr else ''}}">
+                <div class="invalid-feedback">
+                  Some name is required.
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="pdesc">Brief description</label>
+              <textarea class="form-control" name="pdesc" id="pdesc" cols="25" placeholder="Max 250 chars" rows="10" >{{pr.p_description if pr else ''}}</textarea>
+              <div class="invalid-feedback">
+                Please enter anything for the buyers.
+              </div>
+            </div>
+            {% if ed %}
+            <input type="hidden" name="ed_itm_id" value="{{ pr.p_id }}">
+            <input class="btn btn-success w-100 btn-lg btn-block" name="confbtn" type="submit" value="Update this item">
+            {% else %}
+            <input class="btn btn-primary w-100 btn-lg btn-block" name="addbtn" type="submit" value="Add this item">
+            {% endif %}
+          </form>
+        </div>
+      </div>
+    </div>
+{{ super() }}
+{% endblock %}

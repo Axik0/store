@@ -1,0 +1,29 @@
+{% extends 'custombase.html' %}
+
+{% block title %}
+{{pr.p_name}}
+{% endblock %}
+
+
+{% block content %}
+<div class="container d-flex justify-content-center">
+<div class="card col-md-10">
+    <img class="card-img-top img-fluid" src="/static/temp/hjuuga.jpg" role="img" alt="Responsive image">
+  <div class="card-body">
+    <h5 class="card-title">{{pr.p_name}}</h5>
+    <p class="card-text">{{pr.p_description}}</p>
+    {% if current_user.id == 1 %}
+    <p class="card-text"><h3 class="text-dark "><i class="bi bi-currency-dollar"></i>{{pr.p_price}} | {{pr.p_amount}} left</h3></p>
+    <div class="container d-flex">
+      <a class="btn btn-warning mx-2 w-100 btn-lg btn-block" href="{{ url_for('edit_pr', p_id=pr.p_id) }} ">Edit</a>
+      <a class="btn btn-danger mx-2 w-100 btn-lg btn-block" href="{{ url_for('del_pr', p_id=pr.p_id) }} ">Delete</a>
+    </div>
+    {% else %}
+    <p class="card-text"><h3 class="text-dark "><i class="bi bi-currency-dollar"></i>{{pr.p_price}}</h3></p>
+    <a class="btn btn-primary mx-2 w-100 btn-lg btn-block" href="{{ url_for('buy_pr', p_id=pr.p_id) }} ">Buy</a>
+    {% endif %}
+  </div>
+</div>
+</div>
+{{ super() }}
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'custombase.html' %}
+
+{% block title %}
+Cart
+{% endblock %}
+
+
+{% block content %}
+{% if cc %}
+    <div class="d-flex align-items-center justify-content-center">
+        <h1 class="pb-2 border-bottom">Your cart</h1>
+    </div>
+    <div class="container">
+        <ul class="list-group">
+        {% for p in cc %}
+        <li class="list-group-item d-flex flex-row align-items-center justify-content-between">
+            <a href="{{ url_for('products', p_id=cc[p][0].p_id) }}">{{cc[p][0].p_name}}</a>
+            <form method="POST" class="border-start">
+            <label class="mx-1"><i class="bi bi-currency-dollar"></i>{{cc[p][0].p_price}}<i class="bi bi-x"></i>{{cc[p][1]}}</label>
+            <input type="hidden" name="del1id" value="{{ cc[p][0].p_id }}">
+            <input type="submit" name="del1btn" class="btn btn-outline-danger" value="Delete">
+            </form>
+        </li>
+        {% endfor %}
+        </ul>
+    </div>
+    <div class="container d-flex justify-content-center mt-2">
+        <div class="input-group mb-3 ">
+          <label class="btn btn-outline-primary active" id="total-label">Total:</label>
+          <label class="form-control" aria-describedby="button-confirm, total-label">
+              <i class="bi bi-currency-dollar"></i>{{ tot[0] }} for {{tot[1]}} items
+          </label>
+          <form method="POST">
+            <input class="btn btn-outline-success" name="scrtbtn" type="submit" value="Proceed to checkout">
+          </form>
+        </div>
+    </div>
+{% else %}
+    <div class="d-flex align-items-center justify-content-center">
+        <h1 class="pb-2 border-bottom">Your cart is empty</h1>
+    </div>
+{% endif %}
+{{ super() }}
+{% endblock %}
