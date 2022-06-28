@@ -1,0 +1,36 @@
+{% extends 'custombase.html' %}
+
+{% block title %}
+Admin control panel
+{% endblock %}
+
+
+{% block content %}
+{% if cd %}
+<div class="d-flex align-items-center justify-content-center">
+    <h1 class="pb-2 border-bottom">Current state</h1>
+</div>
+<div class="container">
+    <ul class="list-group">
+        {% for u in cd %}
+        <li class="list-group-item d-flex flex-row align-items-center justify-content-between">
+            <label class="px-1">ID: {{u.id}}</label>
+            <label class="px-1 border-start">R date: {{u.u_date}}</label>
+            <label class="px-1 border-start">Name: {{u.user_name}}</label>
+            <label class="px-1 border-start">Orders #: {{u.u_orders|length}}</label>
+            <label class="px-1 border-start">Spent: <i class="bi bi-currency-dollar"></i>{{cd[u]}}</label>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+<div class="input-group container d-flex justify-content-between mt-2 mb-3">
+    <label class="btn btn-outline-dark active" id="total-label">Total income:</label>
+    <label class="form-control" aria-describedby="total-label"><i class="bi bi-currency-dollar"></i>{{ cd.values()|sum }}</label>
+</div>
+{% else %}
+    <div class="d-flex align-items-center justify-content-center">
+        <h1 class="pb-2 border-bottom">No registered users.</h1>
+    </div>
+{% endif %}
+{{ super() }}
+{% endblock %}

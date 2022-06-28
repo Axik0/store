@@ -27,11 +27,13 @@
         <li><a href="#" class="nav-link px-2 link-dark">About</a></li>
       </ul>
       {% if current_user.is_authenticated %}
-      <div class="col-md-3 text-end">
+      <div class="col-md-4 text-end">
         {% if current_user.id == 1 %}
+        <a href="{{ url_for('control_panel') }}" class="btn btn-outline-danger me-2">Control</a>
         <a href="{{ url_for('add_product') }}" class="btn btn-outline-success me-2">Add</a>
         {% else %}
-        <a href="{{ url_for('show_cart') }}" class="btn btn-outline-primary me-2">My cart</a>
+        <a href="{{ url_for('show_cart') }}" class="btn btn-outline-success me-2">Cart</a>
+        <a href="{{ url_for('my_orders') }}" class="btn btn-outline-primary me-2">Orders</a>
         {% endif %}
         <a href="{{ url_for('logout') }}" class="btn btn-primary">Log out</a>
       </div>

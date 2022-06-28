@@ -58,7 +58,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-# bi-directional one-to-many relationship
 class User(UserMixin, db.Model):
     # Usermixin contains some important methods for our User
     # base class to inherit when we create our db entities
@@ -76,10 +75,22 @@ class User(UserMixin, db.Model):
     # each user has some purchased items (list of ids) and a single cart (last one)
     purchases = db.Column(db.PickleType)
     cart = db.Column(db.PickleType)
-
+    # 1-Many bi-directional bond
+    u_orders = relationship("Order", back_populates="client")
     # I just want to return a string with custom printable representation of an object, overrides standard one
     def __repr__(self):
         return f'<User_{self.id}: {self.user_name}>'
+
+
+class Order(db.Model):
+    __tablename__ = "orders"
+    o_id = db.Column(db.Integer, primary_key=True)
+    o_date = db.Column(db.Date, default=date.today())
+    o_contents = db.Column(db.PickleType)
+    o_state = db.Column(db.Integer, nullable=False)
+    # 1-Many bi-directional bond
+    u_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    client = relationship("User", back_populates="u_orders")
 
 
 class Product(db.Model):
@@ -140,7 +151,7 @@ def index():
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     form = LoginForm()
-    # check if it's a valid POST request
+        # check if it's a valid POST request
     if form.validate_on_submit():
         r_user_name = request.form.get('username_f')
         r_user_password = request.form.get('password_f')
@@ -265,7 +276,7 @@ def show_cart():
             else:
                 flash('Please login/register to continue.', 'error')
                 return redirect(url_for('login'))
-    return render_template("cart.html", cc=cart, tot=calc_total(cart))
+    return render_template("cart.html", cc=cart, tot=calc_total(cart) if cart else {})
 
 
 @app.route("/checkout", methods=['GET', 'POST'])
@@ -292,20 +303,42 @@ def checkout():
         cv = request.form['cc-cvv']
         private_data['p'] = {'pame': me, 'ccna': na, 'ccnu': nu, 'ccex': ex, 'cccv': cv}
         # save all data for future checkmark state
-        save = request.form['save-info']
-        if save:
-            current_user.private_details = private_data
-            db.session.commit()
+        # save = request.form['save-info']
+        # if save:
+        #     current_user.private_details = private_data
+        #     db.session.commit()
+        # final_cart = {Product object id: [Product object, quantity], ...}
+        # I don't want to store whole product objects in orders as they could mutate,
+        # contents = [{Product object id: quantity, ...}, total]
+        new_order = Order(o_contents=[{k: v[1] for k, v in final_cart.items()}, total], o_state=0, client=current_user)
+        db.session.add(new_order)
+        db.session.commit()
+        flash('Your order has been registered', 'info')
+        return redirect(url_for('my_orders'))
     return render_template("checkout.html", fc=final_cart, tot=total)
 
 
+@app.route("/order/<int:o_id>")
 @app.route("/orders")
 @login_required
-def my_orders():
-    orders = current_user.purchases
-    print(orders)
-    #{o_id : [date, contents]}
+def my_orders(o_id=None):
+    if o_id:
+        o = db.session.query(Order).get(o_id)
+        occ = {k: [db.session.query(Product).get(k), v] for k, v in o.o_contents[0].items()}
+        return render_template("order.html", cc=occ, tot=o.o_contents[1], o=o)
+    orders = current_user.u_orders
     return render_template("orders.html", ord=orders)
+
+
+@app.route("/control")
+@login_required
+@admin_only
+def control_panel():
+    # let's get all registered users (excluding admin)
+    users = db.session.query(User).filter(User.id != 1).all()
+    # create a dictionary of all users with a total income from their orders
+    ctr_data = {u: sum([o.o_contents[1][0] if u.u_orders else 0 for o in u.u_orders]) for u in users}
+    return render_template("control.html", cd=ctr_data)
 
 
 @app.route("/add", methods=['GET', 'POST'])
