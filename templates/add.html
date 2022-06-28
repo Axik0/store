@@ -15,15 +15,13 @@ Add a new product
         <div class="col-md-4 order-md-2 mb-4">
       <h4 class="card-title mb-3">Product image</h4>
             {% if pr_image %}
-                <img src="/{{pr_image}}" class="card-img img-fluid rounded" alt="Responsive image">
+                <img src="{{pr_image}}" class="card-img img-fluid rounded" alt="Responsive image">
             {% endif %}
-      <form method = "POST" enctype = "multipart/form-data" class="mx-2 mt-2 d-flex justify-content-center">
+      <form method = "POST" enctype = "multipart/form-data" class="needs-validation mx-2 mt-2 d-flex justify-content-center">
       <label for="file-upload" class="upload-butt btn custom-file-upload">{{'Reload' if pr_image else 'Load'}}</label>
       <input id="file-upload" type="file" name="file" onchange="this.form.submit()"/>
-      </form>
         </div>
         <div class="col-md-8 order-md-1">
-          <form class="needs-validation" method="post" >
               <div class="row">
               <div class="col-md-5 mb-3">
                 <label for="cat">Category</label>
@@ -76,8 +74,8 @@ Add a new product
             {% else %}
             <input class="btn btn-primary w-100 btn-lg btn-block" name="addbtn" type="submit" value="Add this item">
             {% endif %}
-          </form>
         </div>
+      </form>
       </div>
     </div>
 {{ super() }}

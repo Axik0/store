@@ -224,22 +224,39 @@ def edit_pr(p_id):
     if request.method == 'POST':
         # f = request.files.get('file')
         # renew text input for product
-        pr_to_upd.p_category = request.form['cat']
-        pr_to_upd.p_name = request.form['pname']
-        pr_to_upd.p_description = request.form['pdesc']
-        pr_to_upd.p_price = request.form['price']
-        pr_to_upd.p_amount = request.form['amount']
-        try:
-            db.session.commit()
-            flash(f'Product with the name {pr_to_upd.p_name} has been successfully updated.', 'info')
-            return redirect(url_for('products'))
-        except exc.IntegrityError:
-            flash(f'Product with the name {pr_to_upd.p_name} already exists in the database.', 'error')
-        # # image upload handler section
-        # if f:
-        #     img_path = uploader(f)
-        #     if img_path:
-        #         render_template('add.html', pr_image=img_path, pr=None, cat_list=CATS)
+        f = request.files.get('file')
+        ti_conf = request.form.get('confbtn')
+        p_cat = request.form['cat']
+        p_name = request.form['pname']
+        p_desc = request.form['pdesc']
+        p_pri = request.form['price']
+        p_amo = request.form['amount']
+        temp_product = Product(p_category=p_cat, p_name=p_name, p_description=p_desc, p_price=p_pri, p_amount=p_amo)
+        # add text input for product
+        if ti_conf:
+            try:
+                pr_to_upd.p_category = temp_product.p_category
+                pr_to_upd.p_name = temp_product.p_name
+                pr_to_upd.p_description = temp_product.p_description
+                pr_to_upd.p_price = temp_product.p_price
+                pr_to_upd.p_amount = temp_product.p_amount
+                db.session.commit()
+                flash(f'Product with the name {pr_to_upd.p_name} has been successfully updated.', 'info')
+                return redirect(url_for('products'))
+            except exc.IntegrityError:
+                flash(f'Product with the name {pr_to_upd.p_name} already exists in the database.', 'error')
+        # image upload handler section
+        elif f:
+            if f.filename != '':
+                if is_allowed(f.filename):
+                    img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
+                    f.save(img_path)
+                    flash('file uploaded successfully', 'info')
+                    return render_template('add.html', pr_image=img_path, pr=temp_product, cat_list=CATS)
+                else:
+                    flash('incorrect file', 'error')
+            else:
+                flash('No selected file', 'error')
         # else:
         #     flash('Add an image for that product', 'error')
     return render_template("add.html", pr=pr_to_upd, ed=True, cat_list=CATS)
@@ -274,17 +291,18 @@ def products(p_id=None):
 
 # img_path = None
 
-def uploader(f):
-    if f.filename != '':
-        if is_allowed(f.filename):
-            img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
-            f.save(img_path)
-            flash('file uploaded successfully', 'info')
-            return img_path
-        else:
-            flash('incorrect file', 'error')
-    else:
-        flash('No selected file', 'error')
+# def uploader(f):
+#     if f.filename != '':
+#         if is_allowed(f.filename):
+#             img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
+#             f.save(img_path)
+#             flash('file uploaded successfully', 'info')
+#             return img_path
+#         else:
+#             flash('incorrect file', 'error')
+#     else:
+#         flash('No selected file', 'error')
+
 
 @app.route("/add", methods=['GET', 'POST'])
 @login_required
@@ -292,20 +310,21 @@ def uploader(f):
 def add_product():
     global img_path
     if request.method == 'POST':
-        ti_add = request.form.get('addbtn')
         f = request.files.get('file')
+        ti_add = request.form.get('addbtn')
+
+        p_cat = request.form['cat']
+        p_name = request.form['pname']
+        p_desc = request.form['pdesc']
+        p_pri = request.form['price']
+        p_amo = request.form['amount']
+        new_product = Product(p_category=p_cat,
+                              p_name=p_name,
+                              p_description=p_desc,
+                              p_price=p_pri,
+                              p_amount=p_amo)
         # add text input for product
         if ti_add:
-            p_cat = request.form['cat']
-            p_name = request.form['pname']
-            p_desc = request.form['pdesc']
-            p_pri = request.form['price']
-            p_amo = request.form['amount']
-            new_product = Product(p_category=p_cat,
-                                  p_name=p_name,
-                                  p_description=p_desc,
-                                  p_price=p_pri,
-                                  p_amount=p_amo)
             try:
                 db.session.add(new_product)
                 db.session.commit()
@@ -320,7 +339,7 @@ def add_product():
                     img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
                     f.save(img_path)
                     flash('file uploaded successfully', 'info')
-                    return render_template('add.html', pr_image=img_path, pr=None, cat_list=CATS)
+                    return render_template('add.html', pr_image=img_path, pr=new_product, cat_list=CATS)
                 else:
                     flash('incorrect file', 'error')
             else:
@@ -375,6 +394,13 @@ def show_cart():
                 return redirect(url_for('login'))
     return render_template("cart.html", cc=cart, tot=calc_total(cart))
 
+@app.route("/orders")
+@login_required
+def my_orders():
+    orders = current_user.purchases
+    print(orders)
+    #{o_id : [date, contents]}
+    return render_template("orders.html", ord=orders)
 
 @app.route("/checkout", methods=['GET', 'POST'])
 @login_required
