@@ -212,9 +212,19 @@ def update_as(t_path, t_cart={}):
 def flush_as(f_cart=False):
     """deletes cart draft for a particular user"""
     global active_session
-    active_session[current_user.id][0] = None
-    if f_cart:
-        active_session[current_user.id][1] = {}
+    if current_user.is_authenticated:
+        if current_user.id == 1 and active_session and active_session[1][0]:
+            temp_img_path = active_session[1][0]
+            # try to remove this file from temp folder by its path
+            if temp_img_path:
+                try:
+                    os.remove(temp_img_path)
+                except:
+                    flash("Temporary file doesn't exist.", 'error')
+            active_session[current_user.id][0] = None
+        print(active_session)
+        if f_cart and active_session and active_session[current_user.id][1]:
+            active_session[current_user.id][1] = {}
 
 
 @app.route("/flush")
@@ -234,6 +244,10 @@ def flush_cart(dbonly=True):
 
 @app.route("/")
 def index():
+    global active_session
+    if current_user.is_authenticated and current_user.id == 1 and active_session and active_session[1]:
+        # I want to count any admin's redirect to index page as edition/addition withdrawal=>get rid of temp_image_path
+        flush_as()
     return render_template("index.html")
 
 
@@ -273,7 +287,7 @@ def logout():
         current_user.cart = active_session[current_user.id][1]
         db.session.commit()
     except:
-        print('You forgot to log out.')
+        print("You forgot to log out or don't have any cart to save.")
     logout_user()
     return redirect(url_for('index'))
 
@@ -308,7 +322,10 @@ def register():
 @app.route("/products")
 def products(p_id=None):
     global active_session
-    cart = active_session[current_user.id][1]
+    if current_user.is_authenticated and active_session and active_session[current_user.id][1]:
+        cart = active_session[current_user.id][1]
+    else:
+        cart = {}
     if p_id:
         product = db.session.query(Product).get(p_id)
         return render_template("item.html", pr=product)
@@ -320,7 +337,10 @@ def products(p_id=None):
 @app.route("/buy/<int:p_id>")
 def buy_pr(p_id):
     global active_session
-    cart = active_session[current_user.id][1]
+    if current_user.is_authenticated and active_session[current_user.id][1]:
+        cart = active_session[current_user.id][1]
+    else:
+        cart = {}
     pr_to_buy = db.session.query(Product).get(p_id)
     # I just realised that I can't use sqlalchemy objects as keys, seems they can't be compared or that works wrong way
     # therefore, our cart = {Product object id: [Product object, quantity]}
@@ -336,9 +356,14 @@ def buy_pr(p_id):
 
 @app.route("/cart", methods=['GET', 'POST'])
 def show_cart():
-    global active_session
-    # check not registered user!
-    cart = active_session[current_user.id][1]
+    global active_session, anonymous_session
+    # TODO check not registered user
+    try:
+        cart = active_session[current_user.id][1]
+    except KeyError:
+        print('I should track those somehow...')
+        cart = {}
+        # cart = anonymous_session[?]
     if current_user.is_authenticated and not cart:
         # if we don't have any draft we should try to retrieve last cart from database
         cart = current_user.cart
@@ -447,7 +472,10 @@ def add_product():
     global active_session
     if request.method == 'POST':
         # we should have an image path when we upload and come back via POST
-        temp_img_path = active_session[1][0]
+        if active_session and active_session[current_user.id][0]:
+            temp_img_path = active_session[1][0]
+        else:
+            temp_img_path = None
         f = request.files.get('file')
         ti_add = request.form.get('addbtn')
 
@@ -477,6 +505,7 @@ def add_product():
                 except exc.IntegrityError:
                     flash(f'Product with the name {p_name} already exists in the database.', 'error')
             else:
+                print(active_session)
                 flash('Add an image for that product', 'error')
                 return render_template('add.html', pr=new_product, cat_list=CATS)
         # image upload handler section
@@ -506,7 +535,10 @@ def edit_pr(p_id):
     pr_to_upd = db.session.query(Product).get(p_id)
     if request.method == 'POST':
         # we MAY have an image path when we upload and come back via POST
-        temp_img_path = active_session[1][0]
+        if active_session and active_session[current_user.id][0]:
+            temp_img_path = active_session[1][0]
+        else:
+            temp_img_path = None
         # renew text input for product
         f = request.files.get('file')
         ti_conf = request.form.get('confbtn')

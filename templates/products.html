@@ -12,8 +12,8 @@ Products
         <h1 class="fw-light">Available products</h1>
         <p class="lead text-muted">Have a look at what we've prepared for you today.</p>
         <p>
-          <a href="#" class="btn btn-primary my-2">Latest deals</a>
-          <a href="#" class="btn btn-info my-2">Trending stuff</a>
+          <a href="#" class="ldbtn btn btn-primary my-2">Latest deals</a>
+          <a href="#" class="tsbtn btn btn-info my-2">Trending stuff</a>
         </p>
       </div>
     </div>
@@ -32,14 +32,14 @@ Products
               <p class="card-text text-secondary">{{ p.p_description }}</p>
               <div class="d-flex justify-content-between align-items-center">
                 <h3 class="text-dark "><i class="bi bi-currency-dollar"></i>{{ p.p_price }} {{"| "+p.p_amount|string if current_user.id == 1 else '' }}</h3>
-                <form class="btn-group" method="POST">
-                  <a class="btn btn-sm btn-outline-info" href="{{ url_for('products', p_id=p.p_id) }}">{{cc[p.p_id][1] if cc[p.p_id] else 'View'}}</a>
+                <div class="btn-group">
+                  <a class="vbtn btn btn-sm btn-outline-info" href="{{ url_for('products', p_id=p.p_id) }}">{{cc[p.p_id][1] if cc[p.p_id] else 'View'}}</a>
                   {% if current_user.id == 1 %}
-                  <a class="btn btn-sm btn-outline-danger" href="{{ url_for('del_pr', p_id=p.p_id) }}">Delete</a>
+                  <a class="dbtn btn btn-sm btn-outline-danger active" href="{{ url_for('del_pr', p_id=p.p_id) }}">Delete</a>
                       {% else %}
-                  <a class="btn btn-sm btn-outline-primary active" href="{{ url_for('buy_pr', p_id=p.p_id) }}">Buy</a>
+                  <a class="bbtn btn btn-sm btn-outline-primary active" href="{{ url_for('buy_pr', p_id=p.p_id) }}">Buy</a>
                   {% endif %}
-                </form>
+                </div>
               </div>
             </div>
           </div>
