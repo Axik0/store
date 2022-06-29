@@ -8,9 +8,9 @@
 {% block content %}
 <div class="container d-flex justify-content-center">
 <div class="card col-md-10">
-    <img class="card-img-top img-fluid" src="/static/temp/hjuuga.jpg" role="img" alt="Responsive image">
+    <img class="card-img-top img-fluid" src="{{pr.get_pi_path()}}" role="img" alt="Responsive image">
   <div class="card-body">
-    <h5 class="card-title">{{pr.p_name}}</h5>
+    <h5 class="card-title">{{pr.p_name}} </h5>
     <p class="card-text">{{pr.p_description}}</p>
     {% if current_user.id == 1 %}
     <p class="card-text"><h3 class="text-dark "><i class="bi bi-currency-dollar"></i>{{pr.p_price}} | {{pr.p_amount}} left</h3></p>

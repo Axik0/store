@@ -25,7 +25,7 @@ Products
         {% for p in ap %}
         <div class="col">
           <div class="card shadow-sm">
-            <a href="{{ url_for('products', p_id=p.p_id) }}"><img src="/static/temp/pixel.past.jpg" role="img" class="card-img-top img-fluid" alt="Responsive image"></a>
+            <a href="{{ url_for('products', p_id=p.p_id) }}"><img src="{{p.get_pi_path()}}" role="img" class="card-img-top img-fluid" alt="Responsive image"></a>
 
             <div class="card-body">
               <h4 class="text-dark ">{{ p.p_name }}</h4>
