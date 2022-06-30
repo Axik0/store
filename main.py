@@ -222,7 +222,6 @@ def flush_as(f_cart=False):
                 except:
                     flash("Temporary file doesn't exist.", 'error')
             active_session[current_user.id][0] = None
-        print(active_session)
         if f_cart and active_session and active_session[current_user.id][1]:
             active_session[current_user.id][1] = {}
 
@@ -337,7 +336,7 @@ def products(p_id=None):
 @app.route("/buy/<int:p_id>")
 def buy_pr(p_id):
     global active_session
-    if current_user.is_authenticated and active_session[current_user.id][1]:
+    if current_user.is_authenticated and active_session and active_session[current_user.id][1]:
         cart = active_session[current_user.id][1]
     else:
         cart = {}
