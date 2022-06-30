@@ -24,7 +24,7 @@ from functools import wraps
 import random
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzzzz'
+app.config['SECRET_KEY'] = ''
 Bootstrap(app)
 
 CATS = ['Merch', 'Household', 'SSS tier']
